@@ -1,6 +1,10 @@
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import dotenv from 'dotenv';
+import nodemailer from 'nodemailer';
+
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -44,6 +48,37 @@ app.post('/api/body', (req, res) => {
   const name = req.body?.name || 'Guest';
   res.json({ message: `Hi, ${name} (received via POST body)` });
 });
+
+
+// -------------------- Nodemailer Email Feature --------------------
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.NODEMAILER_PASS, // using professor’s demo password
+  },
+});
+
+// GET /send-email → sends email to ?to= or TEST_TO
+app.get('/send-email', async (req, res) => {
+  const to = req.query.to || process.env.TEST_TO;
+  if (!to) return res.status(400).send("❌ Missing recipient email.");
+
+  try {
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to,
+      subject: "Hello from Preya’s Express App 🎉",
+      text: "This is a test email sent from my Express app using Nodemailer.",
+    });
+    res.send("✅ Email sent: " + info.response);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("❌ Error sending email: " + err.message);
+  }
+});
+// ------------------------------------------------------------------
+
 
 // START the server ✅
 app.listen(PORT, () => {
